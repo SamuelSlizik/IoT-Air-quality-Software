@@ -63,6 +63,7 @@ def is_wifi_connected(interface: str = 'wlan0') -> bool:
     Returns True if `interface` is currently associated with an SSID.
     """
     try:
+        print("checking if wifi connected")
         result = subprocess.run(
             ['iwgetid', interface, '-r'],
             capture_output=True, text=True, check=False
@@ -77,6 +78,7 @@ def get_active_connection(interface: str = 'wlan0') -> str:
     Returns the NetworkManager connection name active on `interface`, or '' if none.
     """
     try:
+        print("getting active connection")
         res = subprocess.run(
             ['nmcli', '-t', '-f', 'NAME,DEVICE', 'connection', 'show', '--active'],
             capture_output=True, text=True, check=False
@@ -97,6 +99,7 @@ def get_connection_psk(connection: str) -> Optional[str]:
     Requires root to read secrets.
     """
     try:
+        print("getting psk")
         res = subprocess.run(
             ['nmcli', '-s', '-g', '802-11-wireless-security.psk', 'connection', 'show', connection],
             capture_output=True, text=True, check=False
@@ -151,6 +154,7 @@ def create_hotspot(
     Idempotent: returns immediately if hotspot with same SSID and password is active.
     Otherwise brings up the AP (WPA2 if password provided, open otherwise).
     """
+    print(f"creating hotspot with name:{ssid}, password:{password}, interface:{interface}")
     current = get_active_connection(interface)
     if current == ssid and is_hotspot_active(interface):
         stored = get_connection_psk(current)
@@ -177,6 +181,7 @@ def is_hotspot_active(
     Returns True if in AP mode (hotspot active), False otherwise.
     """
     try:
+        print("checking if hotspot active")
         res = subprocess.run(
             ['iw', 'dev', interface, 'info'],
             capture_output=True, text=True, check=False
