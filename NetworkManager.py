@@ -127,6 +127,9 @@ def connect_wifi(
         stored = get_connection_psk(current)
         if stored == password:
             return True
+    else:
+        delete_nmcli_connection(current)
+    delete_nmcli_connection(ssid)
     # Build and run nmcli command
     cmd = [
         'nmcli', 'device', 'wifi', 'connect', ssid,
@@ -142,6 +145,24 @@ def connect_wifi(
             return True
         time.sleep(1)
     return False
+
+
+def delete_nmcli_connection(name: str) -> bool:
+    cmd = ['nmcli', 'connection', 'delete', 'id', name]
+    try:
+        completed = subprocess.run(
+            cmd,
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        print(completed.stdout.strip() or f"Connection '{name}' deleted.")
+        return True
+    except subprocess.CalledProcessError as e:
+        err = e.stderr.strip() or e.stdout.strip()
+        print(f"Error deleting connection '{name}': {err}")
+        return False
 
 
 def create_hotspot(
@@ -160,6 +181,9 @@ def create_hotspot(
         stored = get_connection_psk(current)
         if stored == password:
             return True
+    else:
+        delete_nmcli_connection(current)
+    delete_nmcli_connection(ssid)
     cmd = [
         'nmcli', 'device', 'wifi', 'hotspot',
         'ifname', interface,
