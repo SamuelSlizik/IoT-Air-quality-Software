@@ -1,5 +1,5 @@
-import subprocess, os, json, time
-from flask import Flask, render_template, request, redirect, url_for, flash, Response
+import subprocess, os, json, time, ctypes
+from flask import Flask, render_template, request, redirect, url_for, flash, Response, abort
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user
 from passlib.hash import pbkdf2_sha256
 from influxdb_client import InfluxDBClient
@@ -177,11 +177,26 @@ def delete_data():
 
     return ('', 204)  # 204 No Content
 
+
 @app.route('/shutdown', methods=['POST'])
 @login_required
 def shutdown_pi():
-    subprocess.run(['/shutdown.sh'], check=True)
-    return ('', 204)
+    try:
+        libc = ctypes.CDLL("libc.so.6", use_errno=True)
+        # magic numbers defined in <linux/reboot.h>
+        LINUX_REBOOT_MAGIC1 = 0xfee1dead
+        LINUX_REBOOT_MAGIC2 = 672274793
+        LINUX_REBOOT_CMD_POWER_OFF = 0x4321
+        # perform the syscall
+        if libc.reboot(LINUX_REBOOT_MAGIC1,
+                       LINUX_REBOOT_MAGIC2,
+                       LINUX_REBOOT_CMD_POWER_OFF,
+                       0) != 0:
+            err = ctypes.get_errno()
+            raise OSError(err, "reboot syscall failed")
+        return ("", 204)
+    except Exception as e:
+        return (str(e), 500)
 
 if __name__ == "__main__":
     # fallback for local dev if you skip Gunicorn

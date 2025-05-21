@@ -91,19 +91,26 @@ def main():
         forward_client = None
 
     if not TEST_INPUT:
-        time.sleep(1)
-        version = airqualitysensor.gain_version()
-        print(f"version is : {str(version)}")
-        time.sleep(1)
+        finished = True
+        while finished:
+            try:
+                time.sleep(1)
+                version = airqualitysensor.gain_version()
+                print(f"version is : {str(version)}")
+                time.sleep(1)
 
-        while SHT3X.begin(RST=4) != 0:
-            print("The initialization of the chip is failed, please confirm whether the chip connection is correct")
-            time.sleep(1)
+                while SHT3X.begin(RST=4) != 0:
+                    print("The initialization of the chip is failed, please confirm whether the chip connection is correct")
+                    time.sleep(1)
 
-        print(f"The chip serial number = {SHT3X.read_serial_number()} ")
+                print(f"The chip serial number = {SHT3X.read_serial_number()} ")
 
-        if not SHT3X.soft_reset():
-            print("Failed to reset the chip")
+                if not SHT3X.soft_reset():
+                    print("Failed to reset the chip")
+
+                finished = False
+            except:
+                pass
 
     message = {}
 
@@ -117,16 +124,19 @@ def main():
             message["H"] = random.uniform(0, 100)
             time.sleep(1)
         else:
-            message["PM1"] = airqualitysensor.gain_particle_concentration_ugm3(airqualitysensor.PARTICLE_PM1_0_STANDARD)
-            message["PM2"] = airqualitysensor.gain_particle_concentration_ugm3(airqualitysensor.PARTICLE_PM2_5_STANDARD)
-            message["PM10"] = airqualitysensor.gain_particle_concentration_ugm3(airqualitysensor.PARTICLE_PM10_STANDARD)
+            try:
+                message["PM1"] = airqualitysensor.gain_particle_concentration_ugm3(airqualitysensor.PARTICLE_PM1_0_STANDARD)
+                message["PM2"] = airqualitysensor.gain_particle_concentration_ugm3(airqualitysensor.PARTICLE_PM2_5_STANDARD)
+                message["PM10"] = airqualitysensor.gain_particle_concentration_ugm3(airqualitysensor.PARTICLE_PM10_STANDARD)
 
-            time.sleep(0.5)
+                time.sleep(0.5)
 
-            message["T"] = SHT3X.get_temperature_C()
-            message["H"] = SHT3X.get_humidity_RH()
+                message["T"] = SHT3X.get_temperature_C()
+                message["H"] = SHT3X.get_humidity_RH()
 
-            time.sleep(0.5)
+                time.sleep(0.5)
+            except:
+                pass
 
         payload_str = json.dumps(message, indent=2)
         print(f"Received data: {payload_str}")
