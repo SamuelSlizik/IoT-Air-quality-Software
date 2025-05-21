@@ -23,7 +23,7 @@ sudo systemctl daemon-reload
 sudo systemctl enable I2cReader.service
 sudo systemctl start  I2cReader.service
 
-The last thing you need to do is run crontab -e
+The last thing you need to do is run sudo crontab -e
 And append this line to the end, also change the location to your location of the script
 
-* * * * * /usr/bin/python /home/samo/IoT-Air-quality-Software/NetworkManager.py
+* * * * * cd /home/samo/IoT-Air-quality-Software/ && /usr/bin/python3 NetworkManager.py
