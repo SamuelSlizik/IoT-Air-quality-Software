@@ -8,7 +8,7 @@ services:
     volumes:
       - certs_data:/certs
       - ./settings.json:/app/settings.json
-      - /usr/local/bin/shutdown.sh:/shutdown.sh:ro
+      - ./shutdown.sh:/shutdown.sh:ro
       - /sbin/shutdown:/host-sbin-shutdown:ro
     depends_on:
       - influxdb
