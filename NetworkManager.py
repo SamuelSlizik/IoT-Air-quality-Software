@@ -142,7 +142,7 @@ def connect_wifi(
 
 
 def create_hotspot(
-    ssid: str = 'Pi_AP',
+    ssid: str = 'IoTAQ',
     password: Optional[str] = None,
     interface: str = 'wlan0'
 ) -> bool:
@@ -151,56 +151,22 @@ def create_hotspot(
     Idempotent: returns immediately if hotspot with same SSID and password is active.
     Otherwise brings up the AP (WPA2 if password provided, open otherwise).
     """
-    # 1) If the right hotspot is already up, done.
     current = get_active_connection(interface)
     if current == ssid and is_hotspot_active(interface):
         stored = get_connection_psk(current)
         if stored == password:
             return True
-
-    # 2) Tear down any old profile named “ssid”
-    subprocess.run(
-        ['nmcli', 'connection', 'delete', ssid],
-        capture_output=True, text=True
-    )
-
-    if password:
-        # — WPA2-PSK hotspot —
-        cmd = [
-            'nmcli', 'device', 'wifi', 'hotspot',
-            'ifname', interface,
-            'con-name', ssid,
-            'ssid', ssid,
-            'password', password
-        ]
-        res = subprocess.run(cmd, capture_output=True, text=True)
-        return res.returncode == 0
-    else:
-        # — Open (no-auth) hotspot —
-        steps = [
-            # a) create fresh Wi-Fi profile
-            ['nmcli', 'connection', 'add',
-             'type', 'wifi', 'ifname', interface,
-             'con-name', ssid, 'autoconnect', 'yes',
-             'ssid', ssid],
-            # b) set it into AP mode on 2.4 GHz with shared IPv4
-            ['nmcli', 'connection', 'modify', ssid,
-             '802-11-wireless.mode', 'ap',
-             '802-11-wireless.band', 'bg',
-             'ipv4.method', 'shared'],
-            # c) strip out any security entirely
-            ['nmcli', 'connection', 'modify', ssid,
-             'remove', '802-11-wireless-security'],  # remove the whole section :contentReference[oaicite:0]{index=0}
-            # d) turn off key management (i.e. no WPA, no WEP)
-            ['nmcli', 'connection', 'modify', ssid,
-             '802-11-wireless-security.key-mgmt', 'none'],  # WEP parameters are only for legacy WEP :contentReference[oaicite:1]{index=1}
-            # e) bring it up
-            ['nmcli', 'connection', 'up', ssid],
-        ]
-        for cmd in steps:
-            if subprocess.run(cmd, capture_output=True, text=True).returncode != 0:
-                return False
-        return True
+    cmd = [
+        'nmcli', 'device', 'wifi', 'hotspot',
+        'ifname', interface,
+        'con-name', ssid,
+        'ssid', ssid
+    ]
+    if not password:
+        password = "admin"
+    cmd += ['password', password]
+    res = subprocess.run(cmd, capture_output=True, text=True)
+    return res.returncode == 0
 
 
 def is_hotspot_active(
@@ -228,19 +194,19 @@ def main():
     settings = load_settings()
 
     if not settings:
-        create_hotspot()
+        create_hotspot("IoTAQ", "admin")
         return
 
     force = settings.get("force_hotspot", "False")
     if force == "True" or force == True:
-        create_hotspot(settings.get("hotspot_name", None), settings.get("hotspot_password", None))
+        create_hotspot(settings.get("hotspot_name", "IoTAQ"), settings.get("hotspot_password", "admin"))
         return
 
     if settings.get("wifi_name", None):
         if connect_wifi(settings.get("wifi_name"), settings.get("wifi_password", None)):
             return
 
-    create_hotspot(settings.get("hotspot_name", None), settings.get("hotspot_password", None))
+    create_hotspot(settings.get("hotspot_name", "IoTAQ"), settings.get("hotspot_password", "admin"))
 
 
 if __name__ == '__main__':
