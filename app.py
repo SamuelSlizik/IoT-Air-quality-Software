@@ -179,10 +179,17 @@ def delete_data():
 
 
 @app.route('/shutdown', methods=['POST'])
+@login_required
 def shutdown_pi():
     try:
-        subprocess.run(['/shutdown.sh'], check=True, capture_output=True)
-        return ('', 204)
+        # call our helper script
+        subprocess.run(
+            ['/usr/local/bin/shutdown.sh'],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+        return ('Shutdown initiated', 200)
     except subprocess.CalledProcessError as e:
         return (e.stderr.decode(), 500)
 
