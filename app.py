@@ -179,7 +179,6 @@ def delete_data():
 
 
 @app.route('/shutdown', methods=['POST'])
-@login_required
 def shutdown_pi():
     try:
         libc = ctypes.CDLL("libc.so.6", use_errno=True)

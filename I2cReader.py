@@ -133,10 +133,10 @@ def main():
 
                 message["T"] = SHT3X.get_temperature_C()
                 message["H"] = SHT3X.get_humidity_RH()
-
-                time.sleep(0.5)
             except:
                 pass
+
+            time.sleep(0.5)
 
         payload_str = json.dumps(message, indent=2)
         print(f"Received data: {payload_str}")
