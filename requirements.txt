@@ -1,0 +1,6 @@
+flask
+flask-login
+passlib
+influxdb-client
+gunicorn
+pandas

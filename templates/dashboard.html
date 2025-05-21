@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Dashboard</title>
+  <style>
+    body { margin: 0; padding: 2rem; font-family: sans-serif; background: #121212; color: #e0e0e0; }
+    header { display: flex; justify-content: space-between; align-items: center; }
+    .controls select { background: #1e1e1e; color: #e0e0e0; border: 1px solid #444; padding: 0.25rem; border-radius: 4px; }
+    nav a { margin-left: 1rem; text-decoration: none; color: #80cbc4; font-size: 0.9rem; }
+    nav a:hover { color: #e0e0e0; }
+
+    h2.current-label {
+      margin: 2rem 0 1rem;
+      color: #e0e0e0;
+      font-size: 1.25rem;
+    }
+
+    .current-readings {
+      display: flex;
+      width: 100%;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .reading {
+      background: #1e1e1e;
+      padding: 1rem;
+      border-radius: 8px;
+      flex: 1;
+      text-align: center;
+    }
+    .reading span {
+      display: block;
+      font-size: 1.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .charts-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+      width: 100%;
+    }
+
+    .chart-container {
+      position: relative;
+      width: 100%;
+      height: 350px;
+      background: #1e1e1e;
+      border-radius: 8px;
+      padding: 1rem;
+      box-sizing: border-box;
+    }
+
+    canvas {
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    /* export button styling */
+    .export-btn {
+      background: #80cbc4;
+      color: #121212;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-left: 1rem;
+    }
+
+    .export-btn:hover {
+      /* lighten on hover to indicate interactivity */
+      background: #a7ffeb;
+    }
+
+    .export-btn:active {
+      /* highlight white on click */
+      background: #e0e0e0;
+    }
+
+    .delete-btn {
+      background: #e57373;
+      color: #121212;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-left: 1rem;
+    }
+    .delete-btn:hover {
+      background: #ef9a9a;
+    }
+    .delete-btn:active {
+      background: #ffcdd2;
+    }
+
+  </style>
+</head>
+<body>
+  <header>
+    <div class="controls">
+      <label>Time range:
+        <select id="timeRange">
+          <option value="1m">Last minute</option>
+          <option value="1h">Last hour</option>
+          <option value="24h">Last day</option>
+          <option value="7d">Last week</option>
+          <option value="30d">Last month</option>
+        </select>
+      </label>
+    </div>
+    <nav>
+      <a href="{{ url_for('change_password') }}">Change Password</a>
+      <a href="{{ url_for('logout') }}">Logout</a>
+      <a href="{{ url_for('settings') }}">Settings</a>
+      <button id="exportBtn" class="export-btn">Export Data</button>
+      <button id="deleteBtn" class="delete-btn">Delete All Data</button>
+      <button id="shutdownBtn" class="delete-btn">Shutdown Device</button>
+    </nav>
+  </header>
+
+  {% set fieldMap = {
+      'PM1':'PM1',
+      'PM2':'PM2.5',
+      'PM10':'PM10',
+      'T':'Temperature',
+      'H':'Humidity'
+    } %}
+  {% set unitMap = {
+      'PM1':'µg/m³',
+      'PM2':'µg/m³',
+      'PM10':'µg/m³',
+      'T':'°C',
+      'H':'%'
+    } %}
+
+  <h2 class="current-label">Current readings</h2>
+  <div class="current-readings">
+    {% for key,label in fieldMap.items() %}
+      <div class="reading">
+        <strong>{{ label }}</strong>
+        <span id="current_{{ key }}">--</span> {{ unitMap[key] }}
+      </div>
+    {% endfor %}
+    <div class="reading">
+      <strong>AQI</strong>
+      <span id="current_AQI">--</span>
+    </div>
+  </div>
+
+  <div class="charts-grid">
+    {% for key in fieldMap.keys() %}
+      <div class="chart-container">
+        <canvas id="chart_{{ key }}"></canvas>
+      </div>
+    {% endfor %}
+  </div>
+
+  <script src="{{ url_for('static', filename='chart.min.js') }}"></script>
+  <script>
+    const fieldMap = {{ fieldMap|tojson }};
+    const unitMap  = {{ unitMap|tojson }};
+    const fields   = Object.keys(fieldMap);
+    const charts   = {};
+    const select   = document.getElementById('timeRange');
+    const tickLimits = { '1m':60, '1h':60, '24h':60, '7d':60, '30d':60 };
+
+    document.getElementById('shutdownBtn').addEventListener('click', async () => {
+      if (!confirm("Are you sure you want to shutdown the Raspberry Pi?")) return;
+      const res = await fetch('/shutdown', { method: 'POST' });
+      if (res.ok) alert('Shutdown command sent.');
+      else alert('Failed to send shutdown command.');
+    });
+
+    const deleteBtn = document.getElementById('deleteBtn');
+    deleteBtn.addEventListener('click', async () => {
+      if (!confirm("Are you sure you want to delete ALL data? This action cannot be undone.")) {
+        return;
+      }
+      try {
+        const resp = await fetch('/delete-data', { method: 'POST' });
+        if (resp.ok) {
+          alert('All data deleted.');
+          // refresh charts & readings
+          fetchDataAndUpdate();
+          fetchCurrentReadings();
+        } else {
+          alert('Delete failed. Please try again or check the server logs.');
+        }
+      } catch (e) {
+        console.error('Delete failed:', e);
+        alert('Delete failed. See console for details.');
+      }
+    });
+
+    // wire up Export Data button
+    const exportBtn = document.getElementById('exportBtn');
+    exportBtn.addEventListener('click', async () => {
+      try {
+        // fetch all points from server
+        let raw = await fetch(`/data?range=all`).then(r => r.json());
+        if (!Array.isArray(raw) || raw.length === 0) return;
+        // sort the fetched records chronologically by their time field
+        raw.sort((a, b) => new Date(a._time) - new Date(b._time));
+        // build CSV header from keys (preserve _time first)
+        const cols = Object.keys(raw[0]).filter(k => k !== '_time');
+        let csv = [`_time,${cols.join(',')}`];
+        raw.forEach(row => {
+          const line = [row._time, ...cols.map(c => row[c] ?? '')].join(',');
+          csv.push(line);
+        });
+        // trigger download
+        const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'influx_export.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        console.error('Export failed:', e);
+      }
+    });
+
+    async function fetchCurrentReadings() {
+      let raw = [];
+      try {
+        raw = await fetch(`/data?range=2s`).then(r => r.json());
+      } catch(e) {
+        console.error("fetch current failed:", e);
+      }
+      if (Array.isArray(raw) && raw.length) {
+        raw.sort((a,b) => new Date(a._time) - new Date(b._time));
+        const latest = raw[raw.length - 1];
+        fields.forEach(f => {
+          const val = latest[f];
+          document.getElementById(`current_${f}`).textContent =
+            val != null
+              ? Number(val).toLocaleString(undefined, { maximumFractionDigits: 3 })
+              : '--';
+        });
+        // calculate instant AQI from latest PM2.5 and PM10
+        (function(){
+          const pm25 = latest['PM2'];
+          const pm10 = latest['PM10'];
+          const bp25 = [
+            {Clo:0.0, Chi:12.0, Ilo:0,   Ihi:50},
+            {Clo:12.1,Chi:35.4, Ilo:51,  Ihi:100},
+            {Clo:35.5,Chi:55.4, Ilo:101, Ihi:150},
+            {Clo:55.5,Chi:150.4,Ilo:151, Ihi:200},
+            {Clo:150.5,Chi:250.4,Ilo:201, Ihi:300},
+            {Clo:250.5,Chi:500.4,Ilo:301, Ihi:500}
+          ];
+          const bp10 = [
+            {Clo:0,   Chi:54,  Ilo:0,   Ihi:50},
+            {Clo:55,  Chi:154, Ilo:51,  Ihi:100},
+            {Clo:155, Chi:254, Ilo:101, Ihi:150},
+            {Clo:255, Chi:354, Ilo:151, Ihi:200},
+            {Clo:355, Chi:424, Ilo:201, Ihi:300},
+            {Clo:425, Chi:604, Ilo:301, Ihi:500}
+          ];
+          function subIndex(C, bps) {
+            if (C == null) return null;
+            for (const bp of bps) {
+              if (C >= bp.Clo && C <= bp.Chi) {
+                return Math.round((bp.Ihi - bp.Ilo)/(bp.Chi - bp.Clo)*(C - bp.Clo) + bp.Ilo);
+              }
+            }
+            return null;
+          }
+          const idx25 = subIndex(pm25, bp25);
+          const idx10 = subIndex(pm10, bp10);
+          const aqiVal = Math.max(idx25||0, idx10||0) || null;
+          let category = '';
+          if (aqiVal != null) {
+            if (aqiVal <= 50)           category = 'Good';
+            else if (aqiVal <= 100)     category = 'Moderate';
+            else if (aqiVal <= 150)     category = 'Unhealthy for SG';
+            else if (aqiVal <= 200)     category = 'Unhealthy';
+            else if (aqiVal <= 300)     category = 'Very Unhealthy';
+            else                        category = 'Hazardous';
+          }
+          document.getElementById('current_AQI').textContent =
+            aqiVal != null ? `${aqiVal} (${category})` : '--';
+        })();
+      } else {
+        fields.forEach(f => {
+          document.getElementById(`current_${f}`)
+                  .textContent = '--';
+        });
+        document.getElementById('current_AQI').textContent = '--';
+      }
+    }
+
+    async function fetchDataAndUpdate() {
+      const rng      = select.value;
+      const maxTicks = tickLimits[rng] || 12;
+      let raw = [];
+      try {
+        raw = await fetch(`/data?range=${rng}`).then(r => r.json());
+      } catch(e) {
+        console.error("fetch /data failed:", e);
+      }
+      if (!Array.isArray(raw)) raw = [];
+      raw.forEach(r => r.time = new Date(r._time));
+      raw.sort((a,b) => a.time - b.time);
+      // insert gap placeholders for >2s missing data before sampling
+      const gapThreshold = 2 * 1000;
+      const withGaps = [];
+      for (let i = 0; i < raw.length; i++) {
+        const curr = raw[i];
+        if (i > 0) {
+          const prev = raw[i - 1];
+          if (curr.time - prev.time > gapThreshold) {
+            // place a marker to break the line
+            withGaps.push({ time: new Date(prev.time.getTime() + gapThreshold), _gap: true });
+          }
+        }
+        withGaps.push(curr);
+      }
+
+      // sample: always keep gap markers, and evenly sample non-gap points up to maxticks
+      let sampled;
+      // count only real data points (exclude our inserted gap markers)
+      const nonGapCount = raw.length
+      if (withGaps.length > maxTicks) {
+        // compute last real‐data index so we always include it
+        const lastRealIndex = withGaps.reduce((acc, pt, idx) => !pt._gap ? idx : acc, -1);
+        // determine sampling step based on real data only
+        const step = Math.ceil(nonGapCount / maxTicks);
+        sampled = withGaps.filter((pt, idx) =>
+          // always include gap markers
+          pt._gap ||
+          // sample every `step`-th real point or the last real point
+          (!pt._gap && (idx % step === 0 || idx === lastRealIndex))
+        );
+      } else {
+        sampled = withGaps;
+      }
+
+      fields.forEach(field => {
+        const label     = fieldMap[field];
+        const unit      = unitMap[field];
+        const titleText = `${label} (${unit})`;
+
+        // build labels/values, inserting nulls for each gap marker
+        const times = [];
+        const values = [];
+        sampled.forEach(pt => {
+          if (pt._gap) {
+            times.push('');
+            values.push(null);
+          } else {
+            times.push(pt.time.toLocaleTimeString());
+            values.push(pt[field] != null ? pt[field] : null);
+          }
+        });
+
+        if (!charts[field]) {
+          const ctx = document.getElementById(`chart_${field}`).getContext('2d');
+          charts[field] = new Chart(ctx, {
+            type: 'line',
+            data: {
+              labels: times,
+              datasets: [{
+                label: titleText,
+                data: values,
+                fill: false,
+                tension: 0.1
+              }]
+            },
+            options: {
+              maintainAspectRatio: false,
+              plugins: {
+                title: { display: true, text: titleText },
+                legend: { display: false }
+              },
+              scales: {
+                x: {
+                  ticks: { autoSkip: true, maxTicksLimit: maxTicks },
+                  grid:  { color: 'rgba(255,255,255,0.1)' }
+                },
+                y: {
+                  position: 'right',
+                  ticks: {},
+                  grid:  { color: 'rgba(255,255,255,0.1)' }
+                }
+              }
+            }
+          });
+        } else {
+          const c = charts[field];
+          c.options.plugins.title.text = titleText;
+          c.options.scales.x.ticks.maxTicksLimit = maxTicks;
+          c.data.labels    = times;
+          c.data.datasets[0].data = values;
+          c.update();
+        }
+      });
+    }
+
+    select.addEventListener('change', () => {
+      fetchDataAndUpdate();
+      fetchCurrentReadings();
+    });
+
+    // initial load
+    fetchDataAndUpdate();
+    fetchCurrentReadings();
+
+    // always update current readings every second;
+    // for "1m" range also update charts every second
+    setInterval(() => {
+      fetchCurrentReadings();
+      if (select.value === '1m') {
+        fetchDataAndUpdate();
+      }
+    }, 1000);
+
+    // for all other ranges, update charts every 10 seconds
+    setInterval(() => {
+      if (select.value !== '1m') {
+        fetchDataAndUpdate();
+      }
+    }, 5000);
+  </script>
+</body>
+</html>

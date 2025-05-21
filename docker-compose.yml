@@ -1,0 +1,63 @@
+services:
+  web:
+    build: .
+    ports:
+      - "443:443"
+    cap_add:
+      - SYS_BOOT
+    volumes:
+      - certs_data:/certs
+      - ./settings.json:/app/settings.json
+      - /usr/local/bin/shutdown.sh:/shutdown.sh:ro
+      - /sbin/shutdown:/host-sbin-shutdown:ro
+    depends_on:
+      - influxdb
+    environment:
+      - INFLUX_URL=http://influxdb:8086
+      - INFLUX_TOKEN=IeaFlTzFaLUZ2_YDddYnn0srVqarsYE_0YZmCAf6o_SiZYlBGF5gqfziZJWxuYmjG4siL_1WjSHejK_hUQ_B0A==
+      - INFLUX_ORG=stuba
+      - INFLUX_BUCKET=mybucket
+      - SECRET_KEY=ef4a3505bb6ef5d1bbf25fe90cadd16413616eed558a3d2cf4ed028b928325cd
+
+  mosquitto:
+    image: eclipse-mosquitto:latest
+    container_name: mosquitto
+    ports:
+      - 127.0.0.1:1883:1883
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+    restart: unless-stopped
+
+  influxdb:
+    image: influxdb:2.7
+    container_name: influxdb
+    ports:
+      - 8086:8086
+    volumes:
+      - influxdb-data:/var/lib/influxdb2
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=samo
+      - DOCKER_INFLUXDB_INIT_PASSWORD=Samo1samo
+      - DOCKER_INFLUXDB_INIT_URL=http://influxdb:8086
+      - DOCKER_INFLUXDB_INIT_ORG=stuba
+      - DOCKER_INFLUXDB_INIT_BUCKET=mybucket
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=IeaFlTzFaLUZ2_YDddYnn0srVqarsYE_0YZmCAf6o_SiZYlBGF5gqfziZJWxuYmjG4siL_1WjSHejK_hUQ_B0A==
+    restart: unless-stopped
+
+  telegraf:
+    image: telegraf:latest
+    container_name: telegraf
+    volumes:
+      - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+    depends_on:
+      - influxdb
+      - mosquitto
+    restart: unless-stopped
+
+volumes:
+  influxdb-data:
+  certs_data:
+  user_data:

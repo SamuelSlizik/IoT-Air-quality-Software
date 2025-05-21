@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Settings</title>
+  <style>
+    /* center the settings form */
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background: #121212;
+      color: #e0e0e0;
+      font-family: sans-serif;
+    }
+    form {
+      width: 80%;
+      max-width: 600px;
+      background: #1e1e1e;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    }
+    /* use a textarea for multiline input */
+    textarea {
+      width: 100%;
+      height: 200px;
+      padding: 0.5rem;
+      border-radius: 4px;
+      border: 1px solid #444;
+      background: #1e1e1e;
+      color: #e0e0e0;
+      resize: vertical;
+      box-sizing: border-box;
+      font-family: inherit;
+      font-size: 1rem;
+    }
+    button {
+      margin-top: 1rem;
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 4px;
+      background: #80cbc4;
+      color: #121212;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #a7ffeb;
+    }
+    /* link back to dashboard */
+    .back-link {
+      display: block;
+      margin-top: 1rem;
+      text-align: right;
+    }
+    .back-link a {
+      color: #80cbc4;
+      text-decoration: none;
+    }
+    .back-link a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <form method="post">
+    <h2>Settings</h2>
+    <textarea
+      id="setting_value"
+      name="setting_value"
+      placeholder="Enter setting…"
+    >{{ setting_value }}</textarea>
+    <button type="submit">Submit</button>
+    <div class="back-link">
+      <a href="{{ url_for('dashboard') }}">&larr; Back to Dashboard</a>
+    </div>
+  </form>
+</body>
+</html>
