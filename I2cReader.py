@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 import paho.mqtt.client as mqtt
 from paho.mqtt.client import Client
 
-TEST_INPUT = True
+TEST_INPUT = False
 
 if not TEST_INPUT:
     from dfrobot_airqualitysensor import *
