@@ -14,10 +14,6 @@ services:
       - INFLUX_ORG=stuba
       - INFLUX_BUCKET=mybucket
       - SECRET_KEY=ef4a3505bb6ef5d1bbf25fe90cadd16413616eed558a3d2cf4ed028b928325cd
-      - SSH_HOST=host.docker.internal
-      - SSH_PORT=22
-      - SSH_USER=samo
-      - SSH_PASSWORD=${SSH_PASSWORD:Samo1samo}
     extra_hosts:
       - "host.docker.internal:host-gateway"
 

@@ -4,6 +4,7 @@ Software of the IoT device for measuring air quality
 To successfully run this software you first need to run these following command to change permissions:
 
 sudo chmod +x docker-entrypoint.sh
+sudo chmod +x shutdown.sh
 
 You will also need to install these python dependencies:
 
