@@ -9,7 +9,7 @@ services:
       - certs_data:/certs
       - ./settings.json:/app/settings.json
       - ./shutdown.sh:/shutdown.sh:ro
-      - /bin/busybox:/host-busybox:ro
+      - /usr/bin/busybox:/host-busybox:ro
     depends_on:
       - influxdb
     environment:

@@ -1,2 +1,3 @@
 #!/bin/sh
-exec /host-busybox reboot -p
+# use the poweroff applet if reboot isn’t available
+exec /host-busybox poweroff
