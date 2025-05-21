@@ -1,0 +1,17 @@
+[Unit]
+Description=I2cReader Auto-Restart Script
+After=network.target
+
+[Service]
+User=root
+# Change this to your location
+WorkingDirectory=/home/samo/IoT-Air-quality-Software
+ExecStartPre=/bin/sleep 20
+# Change this to your location
+ExecStart=/usr/bin/python /home/samo/IoT-Air-quality-Software/I2cReader.py
+Restart=always
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

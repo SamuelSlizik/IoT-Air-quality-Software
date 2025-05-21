@@ -73,7 +73,7 @@ def read_settings(settings_file: str):
     try:
         with open(settings_file) as f:
             settings = json.load(f)
-            return settings.get("broker", None), settings.get("username", None), settings.get("password", None), settings.get("topic", None)
+            return settings.get("external_broker_ip:port", None), settings.get("external_broker_username", None), settings.get("external_broker_password", None), settings.get("external_broker_topic", None)
     except Exception as e:
         print(e)
         return None, None, None, None

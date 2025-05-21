@@ -14,9 +14,11 @@ services:
       - INFLUX_ORG=stuba
       - INFLUX_BUCKET=mybucket
       - SECRET_KEY=ef4a3505bb6ef5d1bbf25fe90cadd16413616eed558a3d2cf4ed028b928325cd
+    restart: unless-stopped
 
   mosquitto:
     image: eclipse-mosquitto:latest
+    restart: unless-stopped
     container_name: mosquitto
     ports:
       - 127.0.0.1:1883:1883

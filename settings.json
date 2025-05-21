@@ -1,5 +1,11 @@
 {
-  "force_hotspot":"True",
-  "wifi_name":"23WifiSS",
-  "wifi_password":"T9i1n7A3"
+  "force_hotspot":"False",
+  "hotspot_password":"adminadmin",
+  "hotspot_name":"IoTAQ",
+  "wifi_name":"",
+  "wifi_password":"",
+  "external_broker_ip:port":"",
+  "external_broker_username":"",
+  "external_broker_password":"",
+  "external_broker_topic":""
 }
