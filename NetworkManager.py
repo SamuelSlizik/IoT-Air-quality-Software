@@ -163,9 +163,36 @@ def create_hotspot(
         'ssid', ssid
     ]
     if password:
-        cmd += ['password', password]
-    res = subprocess.run(cmd, capture_output=True, text=True)
-    return res.returncode == 0
+        cmd = [
+            'nmcli', 'device', 'wifi', 'hotspot',
+            'ifname', interface,
+            'con-name', ssid,
+            'ssid', ssid,
+            'password', password
+        ]
+        return subprocess.run(cmd).returncode == 0
+
+    cmds = [
+        # create profile
+        ['nmcli', 'connection', 'add',
+            'type', 'wifi', 'ifname', interface,
+            'con-name', ssid, 'autoconnect', 'yes',
+            'ssid', ssid],
+        # set AP mode, band, shared IPv4
+        ['nmcli', 'connection', 'modify', ssid,
+            '802-11-wireless.mode', 'ap',
+            '802-11-wireless.band', 'bg',
+            'ipv4.method', 'shared'],
+        # disable encryption
+        ['nmcli', 'connection', 'modify', ssid,
+            'wifi-sec.key-mgmt', 'none'],
+        # bring it up
+        ['nmcli', 'connection', 'up', ssid]
+    ]
+    for c in cmds:
+        if subprocess.run(c).returncode != 0:
+            return False
+    return True
 
 
 def is_hotspot_active(
