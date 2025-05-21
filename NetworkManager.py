@@ -166,8 +166,6 @@ def create_hotspot(
         'con-name', ssid,
         'ssid', ssid
     ]
-    if not password:
-        password = "admin"
     cmd += ['password', password]
     print("running command to start hotspot")
     res = subprocess.run(cmd, capture_output=True, text=True)
@@ -202,13 +200,13 @@ def main():
 
     if not settings:
         print("No settings found starting hotspot")
-        create_hotspot("IoTAQ", "admin")
+        create_hotspot("IoTAQ", "adminadmin")
         return
 
     force = settings.get("force_hotspot", "False")
     if force == "True" or force == True:
         print("Force hotspot found")
-        create_hotspot(settings.get("hotspot_name", "IoTAQ"), settings.get("hotspot_password", "admin"))
+        create_hotspot(settings.get("hotspot_name", "IoTAQ"), settings.get("hotspot_password", "adminadmin"))
         return
 
     if settings.get("wifi_name", None):
@@ -217,7 +215,7 @@ def main():
             return
 
     print("Connection not successful, starting hotspot")
-    create_hotspot(settings.get("hotspot_name", "IoTAQ"), settings.get("hotspot_password", "admin"))
+    create_hotspot(settings.get("hotspot_name", "IoTAQ"), settings.get("hotspot_password", "adminadmin"))
 
 
 if __name__ == '__main__':
