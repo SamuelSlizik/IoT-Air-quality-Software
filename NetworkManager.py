@@ -194,18 +194,22 @@ def main():
     settings = load_settings()
 
     if not settings:
+        print("No settings found starting hotspot")
         create_hotspot("IoTAQ", "admin")
         return
 
     force = settings.get("force_hotspot", "False")
     if force == "True" or force == True:
+        print("Force hotspot found")
         create_hotspot(settings.get("hotspot_name", "IoTAQ"), settings.get("hotspot_password", "admin"))
         return
 
     if settings.get("wifi_name", None):
+        print("Wifi name found, attempting connection")
         if connect_wifi(settings.get("wifi_name"), settings.get("wifi_password", None)):
             return
 
+    print("Connection not successful, starting hotspot")
     create_hotspot(settings.get("hotspot_name", "IoTAQ"), settings.get("hotspot_password", "admin"))
 
 
