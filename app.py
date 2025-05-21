@@ -177,22 +177,6 @@ def delete_data():
 
     return ('', 204)  # 204 No Content
 
-
-@app.route('/shutdown', methods=['POST'])
-@login_required
-def shutdown_pi():
-    try:
-        # call our helper script
-        subprocess.run(
-            ['/usr/local/bin/shutdown.sh'],
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
-        )
-        return ('Shutdown initiated', 200)
-    except subprocess.CalledProcessError as e:
-        return (e.stderr.decode(), 500)
-
 if __name__ == "__main__":
     # fallback for local dev if you skip Gunicorn
     app.run(host="0.0.0.0", port=443,

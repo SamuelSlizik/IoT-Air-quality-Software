@@ -14,8 +14,6 @@ services:
       - INFLUX_ORG=stuba
       - INFLUX_BUCKET=mybucket
       - SECRET_KEY=ef4a3505bb6ef5d1bbf25fe90cadd16413616eed558a3d2cf4ed028b928325cd
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
 
   mosquitto:
     image: eclipse-mosquitto:latest

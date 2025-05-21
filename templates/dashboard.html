@@ -115,7 +115,6 @@
       <a href="{{ url_for('settings') }}">Settings</a>
       <button id="exportBtn" class="export-btn">Export Data</button>
       <button id="deleteBtn" class="delete-btn">Delete All Data</button>
-      <button id="shutdownBtn" class="delete-btn">Shutdown Device</button>
     </nav>
   </header>
 
@@ -164,13 +163,6 @@
     const charts   = {};
     const select   = document.getElementById('timeRange');
     const tickLimits = { '1m':60, '1h':60, '24h':60, '7d':60, '30d':60 };
-
-    document.getElementById('shutdownBtn').addEventListener('click', async () => {
-      if (!confirm("Are you sure you want to shutdown the Raspberry Pi?")) return;
-      const res = await fetch('/shutdown', { method: 'POST' });
-      if (res.ok) alert('Shutdown command sent.');
-      else alert('Failed to send shutdown command.');
-    });
 
     const deleteBtn = document.getElementById('deleteBtn');
     deleteBtn.addEventListener('click', async () => {
