@@ -181,21 +181,10 @@ def delete_data():
 @app.route('/shutdown', methods=['POST'])
 def shutdown_pi():
     try:
-        libc = ctypes.CDLL("libc.so.6", use_errno=True)
-        # magic numbers defined in <linux/reboot.h>
-        LINUX_REBOOT_MAGIC1 = 0xfee1dead
-        LINUX_REBOOT_MAGIC2 = 672274793
-        LINUX_REBOOT_CMD_POWER_OFF = 0x4321
-        # perform the syscall
-        if libc.reboot(LINUX_REBOOT_MAGIC1,
-                       LINUX_REBOOT_MAGIC2,
-                       LINUX_REBOOT_CMD_POWER_OFF,
-                       0) != 0:
-            err = ctypes.get_errno()
-            raise OSError(err, "reboot syscall failed")
-        return ("", 204)
-    except Exception as e:
-        return (str(e), 500)
+        subprocess.run(['/shutdown.sh'], check=True, capture_output=True)
+        return ('', 204)
+    except subprocess.CalledProcessError as e:
+        return (e.stderr.decode(), 500)
 
 if __name__ == "__main__":
     # fallback for local dev if you skip Gunicorn
