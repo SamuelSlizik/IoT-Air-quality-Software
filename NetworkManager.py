@@ -169,7 +169,9 @@ def create_hotspot(
     if not password:
         password = "admin"
     cmd += ['password', password]
+    print("running command to start hotspot")
     res = subprocess.run(cmd, capture_output=True, text=True)
+    print(f"{res.returncode}")
     return res.returncode == 0
 
 
